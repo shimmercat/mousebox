@@ -1,0 +1,6 @@
+flags: {}
+packages:
+- '.'
+extra-deps:
+- posix-paths-0.2.1.0
+resolver: nightly-2015-10-09

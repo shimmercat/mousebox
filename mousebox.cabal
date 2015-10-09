@@ -1,0 +1,57 @@
+name:                mousebox
+version:             0.1.0.0
+synopsis:            Initial project template from stack
+description:         Please see README.md
+homepage:            http://github.com/githubuser/mousebox#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Author name here
+maintainer:          example@example.com
+copyright:           2010 Author Here
+category:            Web
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  exposed-modules:     MouseBox.Environment
+                     , MouseBox.JSONHelpers
+  build-depends:       base >= 4.7 && < 5
+                     , RSA >= 2.1.0 && < 3
+                     , x509 >= 1.6.3 && < 2
+                     , crypto-api >= 0.13
+                     , lens >= 4.12
+                     , bytestring >= 0.10.6
+                     , unix >= 2.7 && < 2.8
+                     , monadcryptorandom >= 0.2
+                     , posix-paths >= 0.2.1.0
+                     , yaml >= 0.8 && < 0.9
+                     , aeson >= 0.9
+                     , array >= 0.5
+                     , regex-base >= 0.93
+                     , regex-tdfa >= 1.2
+  default-language:    Haskell2010
+
+executable mousebox-exe
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base >= 4.7 && < 5
+                     , mousebox
+                     , bytestring >= 0.10.6
+  default-language:    Haskell2010
+
+test-suite mousebox-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     , mousebox
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/githubuser/mousebox

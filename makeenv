@@ -1,0 +1,2 @@
+
+export PATH="$(stack path --local-install-root)/bin/":$PATH

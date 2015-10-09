@@ -1,0 +1,121 @@
+{-# LANGUAGE OverloadedStrings, TemplateHaskell #-}
+
+module MouseBox.Environment(
+                           CapturedEnvironment(..),
+                           mouseBoxPlace_CE,
+                           environment_CE,
+
+                           SerializedEnvironment(..),
+                           disambiguator_SE,
+
+                           captureEnvironment
+                           ) where
+
+
+import           Control.Monad                                         (when)
+import           Control.Lens
+
+import qualified Data.ByteString                                       as B
+import qualified Data.ByteString.Lazy                                  as LB
+import           Data.ByteString.Char8                                 (pack, unpack)
+import           Data.Aeson                                            (decode, encode)
+import           Data.Aeson.TH
+
+import qualified System.Posix.Env.ByteString                           as SPE
+import           System.Posix.Types                                    (FileMode(..))
+import           System.Posix.FilePath
+import qualified System.Posix.Files.ByteString                         as SPF
+import qualified System.Posix.Directory.ByteString                     as SPD
+
+import qualified Crypto.Random                                         as CR
+import           Control.Monad.CryptoRandom
+
+import           MouseBox.JSONHelpers
+
+
+data SerializedEnvironment = SerializedEnvironment {
+    _disambiguator_SE :: String
+    }
+    deriving Show
+
+makeLenses ''SerializedEnvironment
+
+
+data CapturedEnvironment = CapturedEnvironment {
+    -- Directory under home dir...
+    _mouseBoxPlace_CE :: B.ByteString
+
+    ,_environment_CE  :: SerializedEnvironment
+    }
+    deriving Show
+
+makeLenses ''CapturedEnvironment
+
+$(deriveJSON defaultOptions{fieldLabelModifier= unpack . extractPropertyName . pack } ''SerializedEnvironment)
+
+
+newSerializedEnvironment :: IO SerializedEnvironment
+newSerializedEnvironment = do
+    srn <- shortRandomName 6
+    return SerializedEnvironment {
+        _disambiguator_SE = unpack srn
+        }
+
+
+missingEnvironmnetVariable :: B.ByteString -> IO B.ByteString
+missingEnvironmnetVariable v = do
+    maybe_varvalue <- SPE.getEnv v
+    case maybe_varvalue of
+        Nothing -> do
+            B.putStr $ "Missing variable " `mappend` v `mappend` " in environment"
+            error "MissingVariable"
+
+        Just value -> return value
+
+
+shortRandomName :: Int -> IO B.ByteString
+shortRandomName name_length = do
+    g <- CR.newGenIO :: IO CR.SystemRandom
+    let
+        bytes = take name_length $ crandomRs (97,122) g
+        bs = B.pack bytes
+    return bs
+
+
+recursivelyCreateDirectory :: B.ByteString ->  IO ()
+recursivelyCreateDirectory pth  = do
+    directory_dont_exist <- SPF.fileExist pth
+    when (not directory_dont_exist) $ do
+        putStrLn . show $ (upper_directory, last_path_component)
+        recursivelyCreateDirectory upper_directory
+        putStrLn $ show last_path_component
+        SPD.createDirectory (upper_directory </> last_path_component) 496
+  where
+    (upper_directory, last_path_component) = splitFileName . dropTrailingPathSeparator $ pth
+
+
+captureEnvironment :: IO CapturedEnvironment
+captureEnvironment = do
+    home_directory <- missingEnvironmnetVariable "HOME"
+    let
+        mouse_box_place = home_directory </> ".config" </> "mousebox"
+        mouse_box_config = mouse_box_place </> "mousebox.conf"
+    recursivelyCreateDirectory mouse_box_place
+    mouse_box_config_exists <- {-# SCC fileExist #-} SPF.fileExist mouse_box_config
+    se <- {-# SCC ifPart #-} if mouse_box_config_exists
+      then do
+        contents <- B.readFile $ unpack mouse_box_config
+        case decode . LB.fromStrict $ contents of
+            Just se'  -> return se'
+            Nothing   -> error "Invalid mousebox.conf file"
+      else do
+        putStrLn "No user-configuration found, creating"
+        se' <- newSerializedEnvironment
+        LB.writeFile (unpack  mouse_box_config) (encode se')
+        return se'
+
+    disambiguator <- shortRandomName 6
+    return CapturedEnvironment {
+        _mouseBoxPlace_CE = mouse_box_place
+       ,_environment_CE   = se
+    }
