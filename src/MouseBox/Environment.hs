@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, TemplateHaskell #-}
+{-# LANGUAGE OverloadedStrings, TemplateHaskell, PackageImports #-}
 
 module MouseBox.Environment(
                            CapturedEnvironment(..),
@@ -12,11 +12,12 @@ module MouseBox.Environment(
                            ) where
 
 
-import           Control.Monad                                         (when)
+import           Control.Monad                                         (when, unless)
 import           Control.Lens
 
 import qualified Data.ByteString                                       as B
 import qualified Data.ByteString.Lazy                                  as LB
+import qualified Data.Binary                                           as Bn
 import           Data.ByteString.Char8                                 (pack, unpack)
 import           Data.Aeson                                            (decode, encode)
 import           Data.Aeson.TH
@@ -27,10 +28,13 @@ import           System.Posix.FilePath
 import qualified System.Posix.Files.ByteString                         as SPF
 import qualified System.Posix.Directory.ByteString                     as SPD
 
-import qualified Crypto.Random                                         as CR
+import qualified "crypto-api" Crypto.Random                            as CR
 import           Control.Monad.CryptoRandom
 
 import           MouseBox.JSONHelpers
+import           MouseBox.CertificationAuthority
+import           MouseBox.Utils                                        (shortRandomName)
+
 
 
 data SerializedEnvironment = SerializedEnvironment {
@@ -50,6 +54,7 @@ data CapturedEnvironment = CapturedEnvironment {
     deriving Show
 
 makeLenses ''CapturedEnvironment
+
 
 $(deriveJSON defaultOptions{fieldLabelModifier= unpack . extractPropertyName . pack } ''SerializedEnvironment)
 
@@ -72,14 +77,6 @@ missingEnvironmnetVariable v = do
 
         Just value -> return value
 
-
-shortRandomName :: Int -> IO B.ByteString
-shortRandomName name_length = do
-    g <- CR.newGenIO :: IO CR.SystemRandom
-    let
-        bytes = take name_length $ crandomRs (97,122) g
-        bs = B.pack bytes
-    return bs
 
 
 recursivelyCreateDirectory :: B.ByteString ->  IO ()
@@ -115,7 +112,28 @@ captureEnvironment = do
         return se'
 
     disambiguator <- shortRandomName 6
-    return CapturedEnvironment {
-        _mouseBoxPlace_CE = mouse_box_place
-       ,_environment_CE   = se
-    }
+    let
+        ce = CapturedEnvironment {
+            _mouseBoxPlace_CE = mouse_box_place
+          , _environment_CE   = se
+          }
+
+    unless mouse_box_config_exists $ newCertificationAuthorityToFile ce
+
+    return ce
+
+
+newCertificationAuthorityToFile :: CapturedEnvironment -> IO ()
+newCertificationAuthorityToFile captured_environment = do
+    let
+        mouse_box_place = captured_environment ^. mouseBoxPlace_CE
+        ca_persistent_registry_file = mouse_box_place </> "ca_persistent_registry.bin"
+        ca_root_cert_fname = mouse_box_place </> ("mousebox_ca_root_" `mappend` disambiguator `mappend` ".pem")
+        disambiguator = pack $ captured_environment ^. ( environment_CE . disambiguator_SE )
+    persistent_registry <- newPersistentCARegistry disambiguator
+    LB.writeFile (unpack ca_persistent_registry_file) (Bn.encode persistent_registry)
+    -- And while we are at that, we can also get a new root certificate
+    let
+        issuer_common_name = persistent_registry ^. issuerCommonName_PCAR
+        pem_ca_root_cert   = createCACertificate persistent_registry
+    B.writeFile (unpack ca_root_cert_fname) pem_ca_root_cert
