@@ -40,9 +40,9 @@ of your project a file named `mouseboxf` with the following contents:
 
     # mouseboxf
     domains:
-      - www.example.com
-      - my.example.com
-      - *.example.com
+      - www.zunzun.se
+      - ima.zunzun.se
+      - www.shimmercat.com
 
 and invoke mousebox from the directory root as:
 
@@ -60,8 +60,37 @@ project root directory, with private key in "\_priv/privkey.pem".
 The created certificate will be valid for all the domains that you entered in your mouseboxf file. 
 
 The file mouseboxf can be kept under revision control, and members of your team will just need to execute the 
-mousebox command to start developing securely your secure website. 
+mousebox command to start developing securely your secure website without having to install a common CA root 
+certificate in their browsers.
 
+
+Change /etc/hosts **or** configure a SOCKS proxy
+--------------------------------------------
+
+You still will need a way for the browser to identify any domains with your local IP address (most likely 127.0.0.1), at 
+present that implies adding alias to "/etc/hosts" for each of your domains:
+
+    # /etc/hosts
+    127.0.0.1     www.example.com
+
+You most likely will need to use non-standard ports to serve your applications, as usual. For example, you would 
+need to navigate to https://www.example.com:4043/ when testing your site over https:// . 
+
+An alternative that will make your life a lot simpler  is to use a special developer profile
+in your browser and configure it to use a SOCKS proxy at IP port 127.0.0.1:9871. [Here is how you do it in 
+Google Chrome](https://www.chromium.org/developers/design-documents/network-stack/socks-proxy). The instructions
+to do it in Firefox can be found [here](http://www.commandlineisking.com/2008/09/firefox-have-your-proxy-do-dns-lookups.html).
+The instructions in the links above are geared towards also doing DNS resolution through the SOCKS proxy, that is needed
+of course.
+
+Then use the --devlove option of Shimmercat:
+
+     $ shimmercat --devlove
+
+In development mode, Shimmercat activates a built-in SOCKS 5 proxy in port 9871, and sets itself behind that
+server. It even activates a built-in DNS server that becomes
+authoritative for all your in-development domains, so you can access your site as just https://www.example.com/ 
+*in your local host*, *without root privileges*, and *without needing to change /etc/hosts* . 
 
 Using Mousebox with Shimmercat
 ------------------------------
@@ -81,7 +110,7 @@ When mousebox is ran, if there is no mouseboxf file and there is a devlove file,
 Instead of storing the certificates in a "\_priv" folder, Mousebox will use Shimmercat's developer mode
 scratch area (usually .shimmercat.loves.devs in your project's root directory). 
 
-Shimmercat will also invoke mousebox automatically when executed in developer mode:
+Shimmercat will also invoke mousebox automatically when executed in developer mode, if there are no certificates yet.
 
     $ shimmercat --devlove
 
