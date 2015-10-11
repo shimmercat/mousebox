@@ -86,3 +86,14 @@ Shimmercat will also invoke mousebox automatically when executed in developer mo
     $ shimmercat --devlove
 
 
+Setting up certificates for development with Nginx
+--------------------------------------------------
+
+_(We will have this section to have a chance to convice Nginx users to try Shimmercat, Google will bring them here
+...)_
+
+Setting up certificates for development with Apache
+---------------------------------------------------
+
+_(Same same)_
+
