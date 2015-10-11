@@ -25,16 +25,18 @@ private certificate authority.  The alternative is *to distribute* a common fake
 CA certificate and its private keys, which may end-up compromising the team's
 browser security a bit. 
 
-This wasn't much of problem before because developers would use HTTP/1.1 over plan http://
+This wasn't much of problem before because developers would use HTTP/1.1 over plain http://
 to develop websites. 
-With the advent of HTTP/2 and the decision of browser makers to only implement it over
-TLS, *developing* sites over https:// may become more popular. 
+With the advent of HTTP/2 and [the decision of browser makers to only implement it over
+TLS](http://daniel.haxx.se/blog/2015/03/06/tls-in-http2/), *developing* sites over https:// may 
+become more popular. 
 
 What's Mousebox?
 ----------------
 
-Mousebox can be run a project to setup a fake local Certification Authority and certificates. 
-For example, if you have at the root of your project a file named `mouseboxf` with the following contents:
+Mousebox can be run inside a web project's directory to setup a fake local
+Certification Authority and certificates.  For example, if you have at the root
+of your project a file named `mouseboxf` with the following contents:
 
     # mouseboxf
     domains:
@@ -49,11 +51,11 @@ and invoke mousebox from the directory root as:
 Mousebox will automatically sets up a fake local Certification Authority suitable for development, if none 
 exists already, leaving the CA certificate at 
 
-   /home/yourusername/.config/mousebox/mousebox_ca_root_xxxxxx.pem
+     /home/yourusername/.config/mousebox/mousebox_ca_root_xxxxxx.pem
 
-You then need install this unique CA certificate in your browser(s), something you need to do only once no matter
-how many projects you use mousebox for. 
-The other thing that mousebox will do is to create a  leaf certificate signed by the CA in the folder "\_priv/cert.pem" in your 
+You then need to install this unique CA certificate in your browser(s), this is needed only once per user. 
+
+The second thing that mousebox will do is to create a leaf certificate signed by the CA in the folder "\_priv/cert.pem" in your 
 project root directory, with private key in "\_priv/privkey.pem".
 The created certificate will be valid for all the domains that you entered in your mouseboxf file. 
 
@@ -75,8 +77,12 @@ Instead of having a "mouseboxf" file, you can have a file named "devlove" for Sh
                 root-dir: artwork/compiled/
                 domain: img.zunzun.se
 
-When ran, if there is no mouseboxf file and there is a devlove file, Mousebox will extract the domains from it. 
+When mousebox is ran, if there is no mouseboxf file and there is a devlove file, Mousebox will extract the domains from it. 
 Instead of storing the certificates in a "\_priv" folder, Mousebox will use Shimmercat's developer mode
 scratch area (usually .shimmercat.loves.devs in your project's root directory). 
+
+Shimmercat will also invoke mousebox automatically when executed in developer mode:
+
+    $ shimmercat --devlove
 
 
