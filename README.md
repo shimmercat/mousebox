@@ -87,8 +87,8 @@ Then use the --devlove option of Shimmercat:
 
      $ shimmercat --devlove
 
-In development mode, Shimmercat activates a built-in SOCKS 5 proxy in port 9871, and sets itself behind that
-server. It even activates a built-in DNS server that becomes
+In development mode, Shimmercat activates a built-in SOCKS 5 proxy in port 9871, and sets itself behind the proxy 
+server. It even activates a built-in DNS server that become that becomes
 authoritative for all your in-development domains, so you can access your site as just https://www.example.com/ 
 *in your local host*, *without root privileges*, and *without needing to change /etc/hosts* . 
 
