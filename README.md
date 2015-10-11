@@ -48,7 +48,7 @@ and invoke mousebox from the directory root as:
 
     $ mousebox
 
-Mousebox will automatically sets up a fake local Certification Authority suitable for development, if none 
+Mousebox will automatically set up a fake local Certification Authority suitable for development, if none 
 exists already, leaving the CA certificate at 
 
      /home/yourusername/.config/mousebox/mousebox_ca_root_xxxxxx.pem
