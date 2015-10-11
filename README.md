@@ -77,10 +77,10 @@ You most likely will need to use non-standard ports to serve your applications, 
 need to navigate to https://www.example.com:4043/ when testing your site over https:// . 
 
 An alternative that will make your life a lot simpler  is to use a special developer profile
-in your browser and configure it to use a SOCKS proxy at IP port 127.0.0.1:9871. [Here is how you do it in 
+in your browser and configure it to use a SOCKS proxy at address 127.0.0.1:9871. [Here is how you do it in 
 Google Chrome](https://www.chromium.org/developers/design-documents/network-stack/socks-proxy). The instructions
 to do it in Firefox can be found [here](http://www.commandlineisking.com/2008/09/firefox-have-your-proxy-do-dns-lookups.html).
-The instructions in the links above are geared towards also doing DNS resolution through the SOCKS proxy, that is needed
+The instructions in the links above prescribe DNS resolution through the SOCKS proxy, that is needed
 of course.
 
 Then use the --devlove option of Shimmercat:
