@@ -14,12 +14,12 @@ module MouseBox.CertificationAuthority(
 
 import "crypto-api" Crypto.Random
 import qualified    Data.ByteString                                     as B
-import qualified    Data.ByteString.Lazy                                as LB
+-- import qualified    Data.ByteString.Lazy                                as LB
 
 import              Codec.Crypto.RSA.Pure
 import              Data.X509
 import              Data.ASN1.OID
-import              Data.ASN1.Types.String
+--import              Data.ASN1.Types.String
 import              Data.Hourglass.Types
 import              Crypto.PubKey.RSA.Types
 import              Data.PEM
@@ -27,8 +27,10 @@ import qualified    Data.Binary                                         as Bn
 import              GHC.Generics                                        (Generic)
 
 
-import qualified    Control.Lens                                        as L
+--import qualified    Control.Lens                                        as L
 import              Control.Lens                                        ( (^.), makeLenses )
+
+import              MouseBox.Utils
 
 
 data PersistentCARegistry = PersistentCARegistry {
@@ -43,19 +45,6 @@ instance Bn.Binary PersistentCARegistry
 
 makeLenses ''PersistentCARegistry
 
-
-stringize  :: B.ByteString -> ASN1CharacterString
-stringize s = ASN1CharacterString IA5 s
-
-
-publicKeyHasher :: Codec.Crypto.RSA.Pure.PublicKey -> B.ByteString
-publicKeyHasher pk = LB.toStrict . LB.take 20 . Bn.encode $ pk
-
-
-hereSign :: Codec.Crypto.RSA.Pure.PrivateKey -> B.ByteString -> (B.ByteString, SignatureALG, ())
-hereSign _private_key stuff_to_sign = let
-    Right  bs_sign = rsassa_pkcs1_v1_5_sign hashSHA384 _private_key . LB.fromStrict $ stuff_to_sign
-  in (LB.toStrict bs_sign, SignatureALG HashSHA384 PubKeyALG_RSA, () )
 
 
 -- A somewhat contrived conversion function
