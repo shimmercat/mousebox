@@ -18,12 +18,17 @@ library
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   exposed-modules:     MouseBox.Environment
                      , MouseBox.CertificationAuthority
+                     , MouseBox.LeafCertificate
+                     , MouseBox.Mouseboxf
+                     , MouseBox.Wrapped
+                     , MouseBox.Exceptions
 
   other-modules:       MouseBox.JSONHelpers
                      , MouseBox.Utils
   build-depends:       base >= 4.7 && < 5
                      , RSA >= 2.1.0 && < 3
                      , x509 >= 1.6.3 && < 2
+                     , asn1-encoding >= 0.9.3
                      , crypto-api >= 0.13
                      , lens >= 4.12
                      , bytestring >= 0.10.6
@@ -40,6 +45,10 @@ library
                      , cryptonite >= 0.7
                      , pem >= 0.2.2
                      , binary >= 0.7.5
+                     , text >= 1.2
+                     , gnuidn >= 0.2
+                     , yaml >= 0.8
+                     , optparse-applicative >= 0.11
   default-language:    Haskell2010
 
 executable mousebox-exe

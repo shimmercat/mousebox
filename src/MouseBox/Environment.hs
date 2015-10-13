@@ -8,11 +8,15 @@ module MouseBox.Environment(
                            SerializedEnvironment(..),
                            disambiguator_SE,
 
-                           captureEnvironment
+                           captureEnvironment,
+                           persistentCARegistryFromFile,
+                           savePersistentCARegistryToFile
                            ) where
 
 
-import           Control.Monad                                         (when, unless)
+import           Control.Monad                                         (--when ,
+                                                                         unless
+                                                                        )
 import           Control.Lens
 
 import qualified Data.ByteString                                       as B
@@ -23,17 +27,17 @@ import           Data.Aeson                                            (decode, 
 import           Data.Aeson.TH
 
 import qualified System.Posix.Env.ByteString                           as SPE
-import           System.Posix.Types                                    (FileMode(..))
+--import           System.Posix.Types                                    (FileMode)
 import           System.Posix.FilePath
 import qualified System.Posix.Files.ByteString                         as SPF
-import qualified System.Posix.Directory.ByteString                     as SPD
+--import qualified System.Posix.Directory.ByteString                     as SPD
 
-import qualified "crypto-api" Crypto.Random                            as CR
-import           Control.Monad.CryptoRandom
+--import qualified "crypto-api" Crypto.Random                            as CR
+--import           Control.Monad.CryptoRandom
 
 import           MouseBox.JSONHelpers
 import           MouseBox.CertificationAuthority
-import           MouseBox.Utils                                        (shortRandomName)
+import           MouseBox.Utils                                        (shortRandomName, recursivelyCreateDirectory)
 
 
 
@@ -78,19 +82,6 @@ missingEnvironmnetVariable v = do
         Just value -> return value
 
 
-
-recursivelyCreateDirectory :: B.ByteString ->  IO ()
-recursivelyCreateDirectory pth  = do
-    directory_dont_exist <- SPF.fileExist pth
-    when (not directory_dont_exist) $ do
-        putStrLn . show $ (upper_directory, last_path_component)
-        recursivelyCreateDirectory upper_directory
-        putStrLn $ show last_path_component
-        SPD.createDirectory (upper_directory </> last_path_component) 496
-  where
-    (upper_directory, last_path_component) = splitFileName . dropTrailingPathSeparator $ pth
-
-
 captureEnvironment :: IO CapturedEnvironment
 captureEnvironment = do
     home_directory <- missingEnvironmnetVariable "HOME"
@@ -111,7 +102,6 @@ captureEnvironment = do
         LB.writeFile (unpack  mouse_box_config) (encode se')
         return se'
 
-    disambiguator <- shortRandomName 6
     let
         ce = CapturedEnvironment {
             _mouseBoxPlace_CE = mouse_box_place
@@ -123,6 +113,8 @@ captureEnvironment = do
     return ce
 
 
+-- | Writes both the registry and the certificate to the place in
+--   /home/user/.config/mousebox/
 newCertificationAuthorityToFile :: CapturedEnvironment -> IO ()
 newCertificationAuthorityToFile captured_environment = do
     let
@@ -134,6 +126,25 @@ newCertificationAuthorityToFile captured_environment = do
     LB.writeFile (unpack ca_persistent_registry_file) (Bn.encode persistent_registry)
     -- And while we are at that, we can also get a new root certificate
     let
-        issuer_common_name = persistent_registry ^. issuerCommonName_PCAR
         pem_ca_root_cert   = createCACertificate persistent_registry
     B.writeFile (unpack ca_root_cert_fname) pem_ca_root_cert
+
+
+persistentCARegistryFromFile :: CapturedEnvironment -> IO PersistentCARegistry
+persistentCARegistryFromFile captured_environment =  do
+    let
+        mouse_box_place = captured_environment ^. mouseBoxPlace_CE
+        ca_persistent_registry_file = mouse_box_place </> "ca_persistent_registry.bin"
+    bs <- LB.readFile (unpack ca_persistent_registry_file)
+    -- And while we are at that, we can also get a new root certificate
+    let
+        persistent_registry = Bn.decode bs
+    return persistent_registry
+
+
+savePersistentCARegistryToFile :: CapturedEnvironment -> PersistentCARegistry -> IO ()
+savePersistentCARegistryToFile ce ca_registry = do
+    let
+        mouse_box_place = ce ^. mouseBoxPlace_CE
+        ca_persistent_registry_file = mouse_box_place </> "ca_persistent_registry.bin"
+    LB.writeFile (unpack ca_persistent_registry_file) (Bn.encode ca_registry)

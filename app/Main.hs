@@ -1,10 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import MouseBox.Environment
+import MouseBox.Wrapped (mouseBoxMain)
 
 
 main :: IO ()
-main = do
-    ce <- captureEnvironment
-    putStrLn . show $ ce
+main = mouseBoxMain

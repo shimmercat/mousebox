@@ -5,8 +5,14 @@ module MouseBox.Utils
        , stringize
        , publicKeyHasher
        , hereSign
+       , recursivelyCreateDirectory
        ) where
 
+import           Control.Monad                                         (when {-, unless-})
+
+import qualified System.Posix.Files.ByteString                         as SPF
+import qualified System.Posix.Directory.ByteString                     as SPD
+import           System.Posix.FilePath
 
 import qualified Data.ByteString                                       as B
 import qualified Data.ByteString.Lazy                                  as LB
@@ -42,3 +48,16 @@ hereSign :: Codec.Crypto.RSA.Pure.PrivateKey -> B.ByteString -> (B.ByteString, S
 hereSign _private_key stuff_to_sign = let
     Right  bs_sign = rsassa_pkcs1_v1_5_sign hashSHA384 _private_key . LB.fromStrict $ stuff_to_sign
   in (LB.toStrict bs_sign, SignatureALG HashSHA384 PubKeyALG_RSA, () )
+
+
+
+recursivelyCreateDirectory :: B.ByteString ->  IO ()
+recursivelyCreateDirectory pth  = do
+    directory_dont_exist <- SPF.fileExist pth
+    when (not directory_dont_exist) $ do
+        --putStrLn . show $ (upper_directory, last_path_component)
+        recursivelyCreateDirectory upper_directory
+        --putStrLn $ show last_path_component
+        SPD.createDirectory (upper_directory </> last_path_component) 496
+  where
+    (upper_directory, last_path_component) = splitFileName . dropTrailingPathSeparator $ pth
