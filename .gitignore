@@ -1,3 +1,6 @@
 .*.swp
 .ipynb_checkpoints
 /.stack-work
+/_priv/
+*.hi
+/testyard/himports.*
