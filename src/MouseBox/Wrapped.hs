@@ -35,17 +35,17 @@ import           Options.Applicative                                   ( (<>) )
 --import           MouseBox.CertificationAuthority
 --import           MouseBox.Utils                                        (shortRandomName)
 import           MouseBox.Environment
-import           MouseBox.LeafCertificate                              (makeLeafCertificate)
+import           MouseBox.LeafCertificate                              (makeLeafCertificate, DomainList)
 import           MouseBox.Mouseboxf
 import           MouseBox.Utils                                        (recursivelyCreateDirectory)
 
 
 data WrappedConfigForMouseboxf = WrappedConfigForMouseboxf {
-         _gotoDir_WCM       :: RawFilePath
-       , _mouseboxf_WCM     :: RawFilePath
-       , _outputRel_WCM     :: RawFilePath
-       , _outputCert_WCM    :: RawFilePath
-       , _outputPrivKey_WCM :: RawFilePath
+         _gotoDir_WCM         :: RawFilePath
+       , _mouseboxf_WCM       :: RawFilePath
+       , _outputRel_WCM       :: RawFilePath
+       , _outputCert_WCM      :: RawFilePath
+       , _outputPrivKey_WCM   :: RawFilePath
     }
 
 makeLenses ''WrappedConfigForMouseboxf
@@ -91,6 +91,26 @@ mouseBoxPerform captured_environment wrapped_config = do
             B.writeFile (unpack output_cert_place) pem_encoded
             B.writeFile (unpack privkey_place) privkey_pem_encoded
             savePersistentCARegistryToFile captured_environment new_persistent_ca_registry
+
+
+mouseBoxPerformWithDomains ::  WrappedConfigForMouseboxf -> MouseBox.LeafCertificate.DomainList ->  IO ()
+mouseBoxPerformWithDomains  wrapped_config  domain_list = do
+    captured_environment <- captureEnvironment
+    let
+        working_dir            = wrapped_config ^. gotoDir_WCM
+        output_dir             = wrapped_config ^. outputRel_WCM
+        output_dir_bas         = working_dir </> output_dir
+        output_cert_place      = working_dir </> output_dir </> (wrapped_config ^. outputCert_WCM)
+        privkey_place          = working_dir </> output_dir </> (wrapped_config ^. outputPrivKey_WCM)
+
+    persistent_registry <- persistentCARegistryFromFile captured_environment
+    (new_persistent_ca_registry, pem_encoded, privkey_pem_encoded) <- makeLeafCertificate persistent_registry domain_list
+
+    recursivelyCreateDirectory output_dir_bas
+
+    B.writeFile (unpack output_cert_place) pem_encoded
+    B.writeFile (unpack privkey_place) privkey_pem_encoded
+    savePersistentCARegistryToFile captured_environment new_persistent_ca_registry
 
 
 mouseBoxMain :: IO ()

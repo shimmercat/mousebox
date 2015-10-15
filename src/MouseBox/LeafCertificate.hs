@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings, PackageImports, TemplateHaskell, DeriveGeneric #-}
 module MouseBox.LeafCertificate(
                     makeLeafCertificate
-                    ) where
+                  , DomainList
+       ) where
 
 
 import qualified    Data.ByteString                                    as B
