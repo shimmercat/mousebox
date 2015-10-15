@@ -1,10 +1,16 @@
 {-# LANGUAGE OverloadedStrings, TemplateHaskell #-}
 -- | Simple high-level functions
 module MouseBox.Wrapped(
-                 WrappedConfigForMouseboxf
+                 WrappedConfigForMouseboxf(..)
+               , gotoDir_WCM
+               , mouseboxf_WCM
+               , outputRel_WCM
+               , outputCert_WCM
+               , outputPrivKey_WCM
 
                , newDefaultWrappedConfigForMouseboxf
                , mouseBoxPerform
+               , mouseBoxPerformWithDomains
 
                , mouseBoxMain
        ) where
