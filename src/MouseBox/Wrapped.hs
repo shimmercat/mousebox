@@ -25,6 +25,7 @@ import qualified Data.ByteString                                       as B
 --import qualified Data.Binary                                           as Bn
 import           Data.ByteString.Char8                                 ( {-pack,-} unpack)
 import qualified Data.Yaml                                             as Y (decodeFile)
+import qualified Data.Text                                             as Tx
 
 import           System.IO                                             (stderr)
 --import qualified System.Posix.Env.ByteString                           as SPE
@@ -88,7 +89,7 @@ mouseBoxPerform captured_environment wrapped_config = do
 
         Just msfbx -> do
             let
-                domain_list = over mapped internetDomainText2ByteString  (msfbx ^. domains_Mf)
+                domain_list =  (msfbx ^. domains_Mf)
             persistent_registry <- persistentCARegistryFromFile captured_environment
             (new_persistent_ca_registry, pem_encoded, privkey_pem_encoded) <- makeLeafCertificate persistent_registry domain_list
 
@@ -99,7 +100,7 @@ mouseBoxPerform captured_environment wrapped_config = do
             savePersistentCARegistryToFile captured_environment new_persistent_ca_registry
 
 
-mouseBoxPerformWithDomains ::  WrappedConfigForMouseboxf -> MouseBox.LeafCertificate.DomainList ->  IO ()
+mouseBoxPerformWithDomains ::  WrappedConfigForMouseboxf -> [Tx.Text] ->  IO ()
 mouseBoxPerformWithDomains  wrapped_config  domain_list = do
     captured_environment <- captureEnvironment
     let
