@@ -58,7 +58,6 @@ hereSign _private_key stuff_to_sign = let
   in (LB.toStrict bs_sign, SignatureALG HashSHA384 PubKeyALG_RSA, () )
 
 
-
 recursivelyCreateDirectory :: B.ByteString ->  IO ()
 recursivelyCreateDirectory pth  = do
     directory_dont_exist <- SPF.fileExist pth
