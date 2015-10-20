@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings, PackageImports, TemplateHaskell, DeriveGeneric #-}
 module MouseBox.LeafCertificate(
                     makeLeafCertificate
-                    ) where
+                  , DomainList
+       ) where
 
 
 import qualified    Data.ByteString                                    as B
@@ -16,6 +17,8 @@ import              Data.ByteString.Char8                              (
 import "crypto-api" Crypto.Random
 --import qualified    Data.ByteString                                     as B
 --import qualified    Data.ByteString.Lazy                                as LB
+import qualified    Data.Text                                           as Tx
+import              Data.Text.IDN.IDNA                                  (toASCII, defaultFlags)
 
 import              Codec.Crypto.RSA.Pure
 import              Data.X509
@@ -39,7 +42,7 @@ import              MouseBox.Utils
 
 
 
-type DomainList = [B.ByteString]
+type DomainList = [Tx.Text]
 
 
 -- Retuirns a binary representation of the new registry,  a DER representation of the certificate and a DER
@@ -66,7 +69,7 @@ makeLeafCertificate ca_registry domains = do
         subject_dn = DistinguishedName [
               ]
 
-        alt_dn = ExtSubjectAltName $ map (AltNameDNS . unpack) domains
+        alt_dn = ExtSubjectAltName $ map (AltNameDNS . unpack . internetDomainText2ByteString) domains
 
         ca_dn = DistinguishedName [
           (getObjectID DnCommonName, stringize issuer_common_name),

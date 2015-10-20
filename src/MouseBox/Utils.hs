@@ -6,13 +6,18 @@ module MouseBox.Utils
        , publicKeyHasher
        , hereSign
        , recursivelyCreateDirectory
+       , internetDomainText2ByteString
        ) where
 
 import           Control.Monad                                         (when {-, unless-})
+import           Control.Exception
 
 import qualified System.Posix.Files.ByteString                         as SPF
 import qualified System.Posix.Directory.ByteString                     as SPD
 import           System.Posix.FilePath
+
+import qualified Data.Text                                             as Tx
+import           Data.Text.IDN.IDNA                                    (toASCII, defaultFlags)
 
 import qualified Data.ByteString                                       as B
 import qualified Data.ByteString.Lazy                                  as LB
@@ -25,6 +30,9 @@ import           Data.ASN1.Types.String
 import           Data.X509
 import           Codec.Crypto.RSA.Pure
 import qualified Data.Binary                                           as Bn
+
+import           MouseBox.Exceptions
+
 
 
 shortRandomName :: Int -> IO B.ByteString
@@ -61,3 +69,11 @@ recursivelyCreateDirectory pth  = do
         SPD.createDirectory (upper_directory </> last_path_component) 496
   where
     (upper_directory, last_path_component) = splitFileName . dropTrailingPathSeparator $ pth
+
+
+internetDomainText2ByteString :: Tx.Text -> B.ByteString
+internetDomainText2ByteString txt = let
+    either_result = toASCII defaultFlags txt
+  in case either_result  of
+    Left  _     -> throw $ BadDomainNameException txt
+    Right bs    -> bs

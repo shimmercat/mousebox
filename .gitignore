@@ -4,3 +4,5 @@
 /_priv/
 *.hi
 /testyard/himports.*
+\#*\#
+.\#*

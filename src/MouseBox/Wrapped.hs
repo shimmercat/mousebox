@@ -1,10 +1,16 @@
 {-# LANGUAGE OverloadedStrings, TemplateHaskell #-}
 -- | Simple high-level functions
 module MouseBox.Wrapped(
-                 WrappedConfigForMouseboxf
+                 WrappedConfigForMouseboxf(..)
+               , gotoDir_WCM
+               , mouseboxf_WCM
+               , outputRel_WCM
+               , outputCert_WCM
+               , outputPrivKey_WCM
 
                , newDefaultWrappedConfigForMouseboxf
                , mouseBoxPerform
+               , mouseBoxPerformWithDomains
 
                , mouseBoxMain
        ) where
@@ -19,6 +25,7 @@ import qualified Data.ByteString                                       as B
 --import qualified Data.Binary                                           as Bn
 import           Data.ByteString.Char8                                 ( {-pack,-} unpack)
 import qualified Data.Yaml                                             as Y (decodeFile)
+import qualified Data.Text                                             as Tx
 
 import           System.IO                                             (stderr)
 --import qualified System.Posix.Env.ByteString                           as SPE
@@ -35,7 +42,7 @@ import           Options.Applicative                                   ( (<>) )
 --import           MouseBox.CertificationAuthority
 --import           MouseBox.Utils                                        (shortRandomName)
 import           MouseBox.Environment
-import           MouseBox.LeafCertificate                              (makeLeafCertificate)
+import           MouseBox.LeafCertificate                              (makeLeafCertificate, DomainList)
 import           MouseBox.Mouseboxf
 import           MouseBox.Utils                                        (recursivelyCreateDirectory)
 
@@ -85,7 +92,7 @@ mouseBoxPerform captured_environment wrapped_config = do
 
         Just msfbx -> do
             let
-                domain_list = over mapped internetDomainText2ByteString  (msfbx ^. domains_Mf)
+                domain_list =  (msfbx ^. domains_Mf)
             persistent_registry <- persistentCARegistryFromFile captured_environment
             (new_persistent_ca_registry, pem_encoded, privkey_pem_encoded, privkey_pkcs8_pem_encoded) <- makeLeafCertificate persistent_registry domain_list
 
@@ -95,6 +102,28 @@ mouseBoxPerform captured_environment wrapped_config = do
             B.writeFile (unpack privkey_place) privkey_pem_encoded
             B.writeFile (unpack privkey_pkcs8_place) privkey_pkcs8_pem_encoded
             savePersistentCARegistryToFile captured_environment new_persistent_ca_registry
+
+
+mouseBoxPerformWithDomains ::  WrappedConfigForMouseboxf -> [Tx.Text] ->  IO ()
+mouseBoxPerformWithDomains  wrapped_config  domain_list = do
+    captured_environment <- captureEnvironment
+    let
+        working_dir            = wrapped_config ^. gotoDir_WCM
+        output_dir             = wrapped_config ^. outputRel_WCM
+        output_dir_bas         = working_dir </> output_dir
+        output_cert_place      = working_dir </> output_dir </> (wrapped_config ^. outputCert_WCM)
+        privkey_place          = working_dir </> output_dir </> (wrapped_config ^. outputPrivKey_WCM)
+        privkey_pkcs8_place    = working_dir </> output_dir </> (wrapped_config ^. outputPrivKeyPKCS8_WCM)
+
+    persistent_registry <- persistentCARegistryFromFile captured_environment
+    (new_persistent_ca_registry, pem_encoded, privkey_pem_encoded, privkey_pkcs8_pem_encoded) <- makeLeafCertificate persistent_registry domain_list
+
+    recursivelyCreateDirectory output_dir_bas
+
+    B.writeFile (unpack output_cert_place) pem_encoded
+    B.writeFile (unpack privkey_place) privkey_pem_encoded
+    B.writeFile (unpack privkey_pkcs8_place) privkey_pkcs8_pem_encoded
+    savePersistentCARegistryToFile captured_environment new_persistent_ca_registry
 
 
 mouseBoxMain :: IO ()
