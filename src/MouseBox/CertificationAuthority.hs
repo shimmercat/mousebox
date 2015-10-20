@@ -97,7 +97,7 @@ createCACertificate ca_registry  =
         -- X.509 version 3 defines extensions.
         -- So for example, they are used for certificate chains.
        , certSerial = 1
-       , certSignatureAlg = SignatureALG HashSHA384 (pubkeyToAlg pubkey_to_use)
+       , certSignatureAlg = SignatureALG HashSHA256 (pubkeyToAlg pubkey_to_use)
        , certIssuerDN = ca_dn
        , certValidity = (
            DateTime {dtDate = Date 2015 January 1, dtTime = TimeOfDay 0 0 0 0},
