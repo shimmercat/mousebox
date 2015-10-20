@@ -41,11 +41,12 @@ import           MouseBox.Utils                                        (recursiv
 
 
 data WrappedConfigForMouseboxf = WrappedConfigForMouseboxf {
-         _gotoDir_WCM       :: RawFilePath
-       , _mouseboxf_WCM     :: RawFilePath
-       , _outputRel_WCM     :: RawFilePath
-       , _outputCert_WCM    :: RawFilePath
-       , _outputPrivKey_WCM :: RawFilePath
+         _gotoDir_WCM            :: RawFilePath
+       , _mouseboxf_WCM          :: RawFilePath
+       , _outputRel_WCM          :: RawFilePath
+       , _outputCert_WCM         :: RawFilePath
+       , _outputPrivKey_WCM      :: RawFilePath
+       , _outputPrivKeyPKCS8_WCM :: RawFilePath
     }
 
 makeLenses ''WrappedConfigForMouseboxf
@@ -55,11 +56,12 @@ newDefaultWrappedConfigForMouseboxf :: IO WrappedConfigForMouseboxf
 newDefaultWrappedConfigForMouseboxf = do
     working_dir <- SPD.getWorkingDirectory
     return WrappedConfigForMouseboxf {
-          _gotoDir_WCM       = working_dir
-        , _mouseboxf_WCM     = "mouseboxf"
-        , _outputRel_WCM     = "_priv"
-        , _outputCert_WCM    = "cert.pem"
-        , _outputPrivKey_WCM = "privkey.pem"
+          _gotoDir_WCM            = working_dir
+        , _mouseboxf_WCM          = "mouseboxf"
+        , _outputRel_WCM          = "_priv"
+        , _outputCert_WCM         = "cert.pem"
+        , _outputPrivKey_WCM      = "privkey.pem"
+        , _outputPrivKeyPKCS8_WCM = "privkey.uencrypted-pkcs8.pem"
         }
 
 
@@ -71,6 +73,7 @@ mouseBoxPerform captured_environment wrapped_config = do
         output_dir_bas         = working_dir </> output_dir
         output_cert_place      = working_dir </> output_dir </> (wrapped_config ^. outputCert_WCM)
         privkey_place          = working_dir </> output_dir </> (wrapped_config ^. outputPrivKey_WCM)
+        privkey_pkcs8_place    = working_dir </> output_dir </> (wrapped_config ^. outputPrivKeyPKCS8_WCM)
         mousebox_file          = working_dir </> (wrapped_config ^. mouseboxf_WCM)
 
     -- Try to read the mousebox file and parse it
@@ -84,12 +87,13 @@ mouseBoxPerform captured_environment wrapped_config = do
             let
                 domain_list = over mapped internetDomainText2ByteString  (msfbx ^. domains_Mf)
             persistent_registry <- persistentCARegistryFromFile captured_environment
-            (new_persistent_ca_registry, pem_encoded, privkey_pem_encoded) <- makeLeafCertificate persistent_registry domain_list
+            (new_persistent_ca_registry, pem_encoded, privkey_pem_encoded, privkey_pkcs8_pem_encoded) <- makeLeafCertificate persistent_registry domain_list
 
             recursivelyCreateDirectory output_dir_bas
 
             B.writeFile (unpack output_cert_place) pem_encoded
             B.writeFile (unpack privkey_place) privkey_pem_encoded
+            B.writeFile (unpack privkey_pkcs8_place) privkey_pkcs8_pem_encoded
             savePersistentCARegistryToFile captured_environment new_persistent_ca_registry
 
 
@@ -124,17 +128,23 @@ mouseboxMainOptsParser = do
                                    <> OA.metavar "OUTPUT_DIR"
                                    <> OA.help    "Output directory"
                                   )
-            <*> OA.option OA.auto   (OA.long       "cert-filename"
+            <*> OA.option OA.auto (OA.long       "cert-filename"
                                    <> OA.short   'c'
                                    <> OA.value   "cert.pem"
                                    <> OA.metavar "CERTIFICATE"
                                    <> OA.help    "Name of the PEM certificate to put at output dir."
                                   )
-            <*> OA.option OA.auto   (OA.long       "privkey-filename"
+            <*> OA.option OA.auto (OA.long       "privkey-filename"
                                    <> OA.short   'p'
                                    <> OA.value   "privkey.pem"
                                    <> OA.metavar "PRIVKEY"
-                                   <> OA.help    "Name of the PEM private key of the cert at output dir."
+                                   <> OA.help    "Name of the PEM private key to put at output dir."
+                                  )
+            <*> OA.option OA.auto (OA.long       "privkey-pkcs8-filename"
+                                   <> OA.short   '8'
+                                   <> OA.value   "privkey.unencrypted-pkcs8.pem"
+                                   <> OA.metavar "PRIVKEY-PKCS8"
+                                   <> OA.help    "Name of the PKCS8 unencrypted private key file"
                                   )
         opts = OA.info (OA.helper <*> parser)
                        (OA.fullDesc

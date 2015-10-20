@@ -34,6 +34,7 @@ import qualified    Control.Lens                                        as L
 import              Control.Lens                                        ( (^.) )
 
 import              MouseBox.CertificationAuthority
+import              MouseBox.PKCS8
 import              MouseBox.Utils
 
 
@@ -43,7 +44,7 @@ type DomainList = [B.ByteString]
 
 -- Retuirns a binary representation of the new registry,  a DER representation of the certificate and a DER
 -- representation of the private key of the newly created certificate.
-makeLeafCertificate :: PersistentCARegistry -> DomainList ->  IO (PersistentCARegistry, B.ByteString, B.ByteString)
+makeLeafCertificate :: PersistentCARegistry -> DomainList ->  IO (PersistentCARegistry, B.ByteString, B.ByteString, B.ByteString)
 makeLeafCertificate ca_registry domains = do
     g <- newGenIO :: IO SystemRandom
     let
@@ -113,6 +114,12 @@ makeLeafCertificate ca_registry domains = do
           pemHeader = [],
           pemContent = encodeASN1' DER $ toASN1 private_key []
           }
+        privkey_pkcs8_formatted = PEM {
+          pemName = "PRIVATE KEY",
+          pemHeader = [],
+          pemContent = encodeASN1' DER $ encodePKCS8 (PKCS8Encoding private_key) []
+          }
         privkey_pem_encoded = pemWriteBS privkey_pem_formatted
+        privkey_pkcs8_pem_encoded = pemWriteBS privkey_pkcs8_formatted
 
-    return (new_ca_registry, pem_encoded, privkey_pem_encoded)
+    return (new_ca_registry, pem_encoded, privkey_pem_encoded, privkey_pkcs8_pem_encoded)
