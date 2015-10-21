@@ -1,4 +1,4 @@
-{-# LANGUAGE PackageImports #-}
+{-# LANGUAGE PackageImports, RecordWildCards #-}
 module MouseBox.Utils
        (
          shortRandomName
@@ -7,6 +7,7 @@ module MouseBox.Utils
        , hereSign
        , recursivelyCreateDirectory
        , internetDomainText2ByteString
+       , completePrivateKey
        ) where
 
 import           Control.Monad                                         (when {-, unless-})
@@ -29,6 +30,7 @@ import           Control.Monad.CryptoRandom
 import           Data.ASN1.Types.String
 import           Data.X509
 import           Codec.Crypto.RSA.Pure
+import qualified Codec.Crypto.RSA.Pure                                 as P
 import qualified Data.Binary                                           as Bn
 
 import           MouseBox.Exceptions
@@ -54,8 +56,16 @@ publicKeyHasher pk = LB.toStrict . LB.take 20 . Bn.encode $ pk
 
 hereSign :: Codec.Crypto.RSA.Pure.PrivateKey -> B.ByteString -> (B.ByteString, SignatureALG, ())
 hereSign _private_key stuff_to_sign = let
-    Right  bs_sign = rsassa_pkcs1_v1_5_sign hashSHA384 _private_key . LB.fromStrict $ stuff_to_sign
-  in (LB.toStrict bs_sign, SignatureALG HashSHA384 PubKeyALG_RSA, () )
+    Right  bs_sign = rsassa_pkcs1_v1_5_sign hashSHA256 _private_key . LB.fromStrict $ stuff_to_sign
+  in (LB.toStrict bs_sign, SignatureALG HashSHA256 PubKeyALG_RSA, () )
+
+
+completePrivateKey :: Codec.Crypto.RSA.Pure.PrivateKey -> Codec.Crypto.RSA.Pure.PrivateKey
+completePrivateKey p@P.PrivateKey {..} = p {
+    private_dP = private_d `mod` (private_p - 1)
+  , private_dQ = private_d `mod` (private_q - 1)
+  , private_qinv = P.modular_inverse private_q private_p
+    }
 
 
 recursivelyCreateDirectory :: B.ByteString ->  IO ()

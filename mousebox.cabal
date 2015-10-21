@@ -22,11 +22,13 @@ library
                      , MouseBox.Mouseboxf
                      , MouseBox.Wrapped
                      , MouseBox.Exceptions
+                     , MouseBox.PKCS8
 
   other-modules:       MouseBox.JSONHelpers
                      , MouseBox.Utils
   build-depends:       base >= 4.7 && < 5
                      , RSA >= 2.1.0 && < 3
+                     , aeson >= 0.9
                      , x509 >= 1.6.3 && < 2
                      , asn1-encoding >= 0.9.3
                      , crypto-api >= 0.13

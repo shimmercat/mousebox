@@ -37,6 +37,7 @@ import qualified    Control.Lens                                        as L
 import              Control.Lens                                        ( (^.) )
 
 import              MouseBox.CertificationAuthority
+import              MouseBox.PKCS8
 import              MouseBox.Utils
 
 
@@ -46,12 +47,13 @@ type DomainList = [Tx.Text]
 
 -- Retuirns a binary representation of the new registry,  a DER representation of the certificate and a DER
 -- representation of the private key of the newly created certificate.
-makeLeafCertificate :: PersistentCARegistry -> DomainList ->  IO (PersistentCARegistry, B.ByteString, B.ByteString)
+makeLeafCertificate :: PersistentCARegistry -> DomainList ->  IO (PersistentCARegistry, B.ByteString, B.ByteString, B.ByteString)
 makeLeafCertificate ca_registry domains = do
     g <- newGenIO :: IO SystemRandom
     let
         -- These are the keys of the subject certificate.
-        Right (public_key, private_key, _) = generateKeyPair g 2048
+        Right (public_key, private_key''', _) = generateKeyPair g 2048
+        private_key = completePrivateKey private_key'''
 
     let
         issuer_public_key     = ca_registry ^. caPubKey_PCAR
@@ -85,7 +87,7 @@ makeLeafCertificate ca_registry domains = do
             -- X.509 version 3 defines extensions.
             -- So for example, they are used for certificate chains.
            , certSerial = fromIntegral current_serial_number
-           , certSignatureAlg = SignatureALG HashSHA384 (pubkeyToAlg pubkey_to_use)
+           , certSignatureAlg = SignatureALG HashSHA256 (pubkeyToAlg pubkey_to_use)
            , certIssuerDN = ca_dn
            , certValidity = (
                DateTime {dtDate = Date 2015 January 1, dtTime = TimeOfDay 0 0 0 0},
@@ -97,13 +99,14 @@ makeLeafCertificate ca_registry domains = do
            , certExtensions = Extensions (Just
                -- The set of extensions below is specific to CAs
                [
-                   extensionEncode True  {-Critical-} (ExtKeyUsage [KeyUsage_digitalSignature, KeyUsage_keyEncipherment, KeyUsage_keyAgreement]),
+                   extensionEncode True  {-Critical-} (ExtKeyUsage [KeyUsage_digitalSignature, KeyUsage_keyEncipherment]),
                    extensionEncode True               alt_dn,
                    extensionEncode False              (ExtSubjectKeyId . publicKeyHasher $ public_key ),
                    extensionEncode False              (ExtAuthorityKeyId . publicKeyHasher $ issuer_public_key )
                ]
              )
           }
+
         (signed_exact_obj, _) = objectToSignedExact (hereSign issuer_private_key) a_cert
         pem_formatted = PEM {
           pemName = "CERTIFICATE",
@@ -116,6 +119,13 @@ makeLeafCertificate ca_registry domains = do
           pemHeader = [],
           pemContent = encodeASN1' DER $ toASN1 private_key []
           }
+        privkey_pkcs8_formatted = PEM {
+          pemName = "PRIVATE KEY",
+          pemHeader = [],
+          pemContent = encodeASN1' DER $ encodePKCS8 (PKCS8Encoding private_key) []
+          }
         privkey_pem_encoded = pemWriteBS privkey_pem_formatted
+        privkey_pkcs8_pem_encoded = pemWriteBS privkey_pkcs8_formatted
 
-    return (new_ca_registry, pem_encoded, privkey_pem_encoded)
+    putStrLn . show $ private_key
+    return (new_ca_registry, pem_encoded, privkey_pem_encoded, privkey_pkcs8_pem_encoded)
