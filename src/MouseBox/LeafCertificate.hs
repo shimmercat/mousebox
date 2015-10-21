@@ -127,5 +127,5 @@ makeLeafCertificate ca_registry domains = do
         privkey_pem_encoded = pemWriteBS privkey_pem_formatted
         privkey_pkcs8_pem_encoded = pemWriteBS privkey_pkcs8_formatted
 
-    putStrLn . show $ private_key
+    --putStrLn . show $ private_key
     return (new_ca_registry, pem_encoded, privkey_pem_encoded, privkey_pkcs8_pem_encoded)
