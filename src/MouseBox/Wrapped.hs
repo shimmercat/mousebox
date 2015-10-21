@@ -68,7 +68,7 @@ newDefaultWrappedConfigForMouseboxf = do
         , _outputRel_WCM          = "_priv"
         , _outputCert_WCM         = "cert.pem"
         , _outputPrivKey_WCM      = "privkey.pem"
-        , _outputPrivKeyPKCS8_WCM = "privkey.uencrypted-pkcs8.pem"
+        , _outputPrivKeyPKCS8_WCM = "privkey.unencrypted-pkcs8.pem"
         }
 
 
