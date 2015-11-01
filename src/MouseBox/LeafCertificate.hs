@@ -100,7 +100,7 @@ makeLeafCertificate ca_registry domains = do
                -- The set of extensions below is specific to CAs
                [
                    extensionEncode True  {-Critical-} (ExtKeyUsage [KeyUsage_digitalSignature, KeyUsage_keyEncipherment]),
-                   extensionEncode False              alt_dn,
+                   extensionEncode True               alt_dn,
                    extensionEncode False              (ExtSubjectKeyId . publicKeyHasher $ public_key ),
                    extensionEncode False              (ExtAuthorityKeyId . publicKeyHasher $ issuer_public_key )
                ]
