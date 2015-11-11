@@ -123,7 +123,7 @@ newCertificationAuthorityToFile captured_environment = do
         ca_root_cert_fname = mouse_box_place </> ("mousebox_ca_root_" `mappend` disambiguator `mappend` ".pem")
         disambiguator = pack $ captured_environment ^. ( environment_CE . disambiguator_SE )
     persistent_registry <- newPersistentCARegistry disambiguator
-    LB.writeFile (unpack ca_persistent_registry_file) (Bn.encode persistent_registry)
+    B.writeFile (unpack ca_persistent_registry_file) (LB.toStrict $ Bn.encode persistent_registry)
     -- And while we are at that, we can also get a new root certificate
     let
         pem_ca_root_cert   = createCACertificate persistent_registry
@@ -135,7 +135,8 @@ persistentCARegistryFromFile captured_environment =  do
     let
         mouse_box_place = captured_environment ^. mouseBoxPlace_CE
         ca_persistent_registry_file = mouse_box_place </> "ca_persistent_registry.bin"
-    bs <- LB.readFile (unpack ca_persistent_registry_file)
+    -- Read this way, we don't want to keep the file open and locked
+    bs <- LB.fromStrict <$> B.readFile (unpack ca_persistent_registry_file)
     -- And while we are at that, we can also get a new root certificate
     let
         persistent_registry = Bn.decode bs
@@ -147,4 +148,4 @@ savePersistentCARegistryToFile ce ca_registry = do
     let
         mouse_box_place = ce ^. mouseBoxPlace_CE
         ca_persistent_registry_file = mouse_box_place </> "ca_persistent_registry.bin"
-    LB.writeFile (unpack ca_persistent_registry_file) (Bn.encode ca_registry)
+    B.writeFile (unpack ca_persistent_registry_file) (LB.toStrict . Bn.encode $ ca_registry)

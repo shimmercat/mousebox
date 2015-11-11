@@ -109,13 +109,13 @@ createCACertificate ca_registry  =
        , certExtensions = Extensions (Just
            -- The set of extensions below is specific to CAs
            [
-               extensionEncode True {-Critical-} (ExtKeyUsage [KeyUsage_keyCertSign]),
+               extensionEncode True {-Critical-} (ExtKeyUsage [KeyUsage_keyCertSign, KeyUsage_digitalSignature]),
                extensionEncode True              (ExtBasicConstraints True
                    -- The field below says that leaf certificates must be signed by this one.
                    -- A little bit in the way of extra-security...
                    (Just 0)
                ),
-               extensionEncode True               (ExtSubjectKeyId . publicKeyHasher $ public_key )
+               extensionEncode False               (ExtSubjectKeyId . publicKeyHasher $ public_key )
            ]
          )
       }
