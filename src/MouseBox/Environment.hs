@@ -4,6 +4,7 @@ module MouseBox.Environment(
                            CapturedEnvironment(..),
                            mouseBoxPlace_CE,
                            environment_CE,
+                           justCreated_CE,
 
                            SerializedEnvironment(..),
                            disambiguator_SE,
@@ -53,7 +54,9 @@ data CapturedEnvironment = CapturedEnvironment {
     -- Directory under home dir...
     _mouseBoxPlace_CE :: B.ByteString
 
-    ,_environment_CE  :: SerializedEnvironment
+  , _environment_CE  :: SerializedEnvironment
+
+  , _justCreated_CE :: Bool
     }
     deriving Show
 
@@ -97,7 +100,6 @@ captureEnvironment = do
             Just se'  -> return se'
             Nothing   -> error "Invalid mousebox.conf file"
       else do
-        putStrLn "No user-configuration found, creating"
         se' <- newSerializedEnvironment
         LB.writeFile (unpack  mouse_box_config) (encode se')
         return se'
@@ -106,6 +108,7 @@ captureEnvironment = do
         ce = CapturedEnvironment {
             _mouseBoxPlace_CE = mouse_box_place
           , _environment_CE   = se
+          , _justCreated_CE = not mouse_box_config_exists
           }
 
     unless mouse_box_config_exists $ newCertificationAuthorityToFile ce

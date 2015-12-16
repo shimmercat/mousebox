@@ -104,7 +104,7 @@ mouseBoxPerform captured_environment wrapped_config = do
             savePersistentCARegistryToFile captured_environment new_persistent_ca_registry
 
 
-mouseBoxPerformWithDomains ::  WrappedConfigForMouseboxf -> [Tx.Text] ->  IO ()
+mouseBoxPerformWithDomains ::  WrappedConfigForMouseboxf -> [Tx.Text] ->  IO Bool
 mouseBoxPerformWithDomains  wrapped_config  domain_list = do
     captured_environment <- captureEnvironment
     let
@@ -124,6 +124,7 @@ mouseBoxPerformWithDomains  wrapped_config  domain_list = do
     B.writeFile (unpack privkey_place) privkey_pem_encoded
     B.writeFile (unpack privkey_pkcs8_place) privkey_pkcs8_pem_encoded
     savePersistentCARegistryToFile captured_environment new_persistent_ca_registry
+    return $ captured_environment ^. justCreated_CE
 
 
 mouseBoxMain :: IO ()
