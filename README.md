@@ -1,8 +1,8 @@
 
-Mousebox
+MouseBox
 ========
 
-Mousebox is a standlone (as in no OpenSSL dependencies) tool 
+MouseBox is a standlone (as in no OpenSSL dependencies) tool 
 that takes care of setting up and leveraging a fake Certification
 Authority suitable for https:// website development. 
 
@@ -31,12 +31,13 @@ With the advent of HTTP/2 and [the decision of browser makers to only implement 
 TLS](http://daniel.haxx.se/blog/2015/03/06/tls-in-http2/), *developing* sites over https:// may 
 become more popular. 
 
-What's Mousebox?
+How do I use it?
 ----------------
 
 Mousebox can be run inside a web project's directory to setup a fake local
 Certification Authority and certificates.  For example, if you have at the root
-of your project a file named `mouseboxf` with the following contents:
+of your project a file named `mouseboxf` with the following contents (of course you 
+can use whatever sites you want!):
 
     # mouseboxf
     domains:
@@ -74,7 +75,8 @@ present that implies adding alias to "/etc/hosts" for each of your domains:
     127.0.0.1     www.example.com
 
 You most likely will need to use non-standard ports to serve your applications, as usual. For example, you would 
-need to navigate to https://www.example.com:4043/ when testing your site over https:// . 
+need to navigate to https://www.example.com:4043/ when testing your site over https:// . *This should work with all
+web servers*
 
 An alternative that will make your life a lot simpler  is to use a special developer profile
 in your browser and configure it to use a SOCKS 5 proxy at address 127.0.0.1:9871. [Here is how you do it in 
@@ -83,11 +85,13 @@ to do it in Firefox can be found [here](http://www.commandlineisking.com/2008/09
 The instructions in the links above prescribe DNS resolution through the SOCKS proxy, that is needed
 of course.
 
-Then use the --devlove option of Shimmercat:
+Then use the devlove mode of our favourite web server, ShimmerCat:
 
-     $ shimmercat --devlove
+     $ shimmercat devlove
 
-In development mode, Shimmercat activates a built-in SOCKS 5 proxy in port 9871, and sets itself behind the proxy 
+ShimmerCat already includes MouseBox, so you can just [download ShimmerCat's binary](https://www.shimmercat.com/info/articles/download/)
+and get your site [up and running in less than five minutes](https://www.youtube.com/watch?v=_0VdzHEISbo). 
+In development mode, ShimmerCat activates a built-in SOCKS 5 proxy in port 2006, and sets itself behind the proxy 
 server. It even activates a built-in DNS server that becomes
 authoritative for all your in-development domains, so you can access your site as just https://www.example.com/ 
 *in your local host*, *without root privileges*, and *without needing to change /etc/hosts* . 
@@ -97,14 +101,10 @@ Using Mousebox with Shimmercat
 
 Instead of having a "mouseboxf" file, you can have a file named "devlove" for Shimmercat to work in developer mode:
 
-    devlove:
-        domains:
-            www:
-                root-dir: djangoproject/app1/static
-                domain: www.zunzun.se
-            img:
-                root-dir: artwork/compiled/
-                domain: img.zunzun.se
+    shimmercat-devlove:
+      domains:
+        www.mysite.com:
+            root-dir: www
 
 When mousebox is ran, if there is no mouseboxf file and there is a devlove file, Mousebox will extract the domains from it. 
 Instead of storing the certificates in a "\_priv" folder, Mousebox will use Shimmercat's developer mode
@@ -115,14 +115,26 @@ Shimmercat will also invoke mousebox automatically when executed in developer mo
     $ shimmercat --devlove
 
 
+Compiling MouseBox as a standalone tool
+---------------------------------------
+
+MouseBox uses [Haskell Stack](http://docs.haskellstack.org/en/stable/README.html), and therefore is as easy to build 
+as any other Haskell project. Just install stack, and then do:
+
+    stack build
+
+and then fetch the neatly standalone binary from `.stack-work/install/x86_64-linux/nightly-XXXX-XX-XX/X.XX.X/bin/mousebox-exe
+where the "X"s should be filled with the nightly version and the ghc version. In most cases, you will have only one directory
+there.
+
+
 Setting up certificates for development with Nginx
 --------------------------------------------------
 
-_(We will have this section to have a chance to convice Nginx users to try Shimmercat, Google will bring them here
-...)_
+*Contributions appreciated to this doc* // The certificates and private key should work with NginX
 
 Setting up certificates for development with Apache
 ---------------------------------------------------
 
-_(Same same)_
+*Contributions appreciated* // The certificates and private key should work with Apache
 
