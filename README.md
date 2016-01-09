@@ -5,6 +5,8 @@ MouseBox
 MouseBox is a standlone (as in no OpenSSL dependencies) tool 
 that takes care of setting up and leveraging a fake Certification
 Authority suitable for https:// website development. 
+When you use it correctly, you can get the green padlock in your 
+website development setup with minimum effort.
 
 
 Why?
@@ -34,7 +36,7 @@ become more popular.
 How do I use it?
 ----------------
 
-Mousebox can be run inside a web project's directory to setup a fake local
+MouseBox can be run inside a web project's directory to setup a fake local
 Certification Authority and certificates.  For example, if you have at the root
 of your project a file named `mouseboxf` with the following contents (of course you 
 can use whatever sites you want!):
@@ -45,11 +47,11 @@ can use whatever sites you want!):
       - ima.zunzun.se
       - www.shimmercat.com
 
-and invoke mousebox from the directory root as:
+and invoke MouseBox from the project's root directory as:
 
     $ mousebox
 
-Mousebox will automatically set up a fake local Certification Authority suitable for development, if none 
+MouseBox will automatically set up a fake local Certification Authority suitable for development, if none 
 exists already, leaving the CA certificate at 
 
      /home/yourusername/.config/mousebox/mousebox_ca_root_xxxxxx.pem
@@ -57,7 +59,8 @@ exists already, leaving the CA certificate at
 You then need to install this unique CA certificate in your browser(s), this is needed only once per user. 
 
 The second thing that mousebox will do is to create a leaf certificate signed by the CA in the folder "\_priv/cert.pem" in your 
-project root directory, with private key in "\_priv/privkey.pem".
+project root directory, with private key in "\_priv/privkey.pem". 
+These are the certificates that you normally use with the web server.
 The created certificate will be valid for all the domains that you entered in your mouseboxf file. 
 
 The file mouseboxf can be kept under revision control, and members of your team will just need to execute the 
@@ -96,21 +99,21 @@ server. It even activates a built-in DNS server that becomes
 authoritative for all your in-development domains, so you can access your site as just https://www.example.com/ 
 *in your local host*, *without root privileges*, and *without needing to change /etc/hosts* . 
 
-Using Mousebox with Shimmercat
+Using MouseBox with ShimmerCat
 ------------------------------
 
-Instead of having a "mouseboxf" file, you can have a file named "devlove" for Shimmercat to work in developer mode:
+Instead of having a "mouseboxf" file, you can have a file named "devlove" for ShimmerCat to work in developer mode:
 
     shimmercat-devlove:
       domains:
         www.mysite.com:
             root-dir: www
 
-When mousebox is ran, if there is no mouseboxf file and there is a devlove file, Mousebox will extract the domains from it. 
-Instead of storing the certificates in a "\_priv" folder, Mousebox will use Shimmercat's developer mode
+When mousebox is ran, if there is no mouseboxf file and there is a devlove file, MouseBox will extract the domains from it. 
+Instead of storing the certificates in a "\_priv" folder, MouseBox will use ShimmerCat's developer mode
 scratch area (usually .shimmercat.loves.devs in your project's root directory). 
 
-Shimmercat will also invoke mousebox automatically when executed in developer mode, if there are no certificates yet.
+ShimmerCat will also invoke mousebox automatically when executed in developer mode, if there are no certificates yet.
 
     $ shimmercat --devlove
 
