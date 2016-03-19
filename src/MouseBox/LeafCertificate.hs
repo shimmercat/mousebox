@@ -18,7 +18,7 @@ import "crypto-api" Crypto.Random
 --import qualified    Data.ByteString                                     as B
 --import qualified    Data.ByteString.Lazy                                as LB
 import qualified    Data.Text                                           as Tx
-import              Data.Text.IDN.IDNA                                  (toASCII, defaultFlags)
+--import              Data.Text.IDN.IDNA                                  (toASCII, defaultFlags)
 
 import              Codec.Crypto.RSA.Pure
 import              Data.X509

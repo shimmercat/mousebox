@@ -18,7 +18,7 @@ import qualified System.Posix.Directory.ByteString                     as SPD
 import           System.Posix.FilePath
 
 import qualified Data.Text                                             as Tx
-import           Data.Text.IDN.IDNA                                    (toASCII, defaultFlags)
+import           Data.Primitive.PunyCode                               (toASCII)
 
 import qualified Data.ByteString                                       as B
 import qualified Data.ByteString.Lazy                                  as LB
@@ -82,7 +82,7 @@ recursivelyCreateDirectory pth  = do
 
 internetDomainText2ByteString :: Tx.Text -> B.ByteString
 internetDomainText2ByteString txt = let
-    either_result = toASCII defaultFlags txt
-  in case either_result  of
-    Left  _     -> throw $ BadDomainNameException txt
-    Right bs    -> bs
+    maybe_result = toASCII  txt
+  in case maybe_result  of
+    Nothing     -> throw $ BadDomainNameException txt
+    Just bs    -> bs

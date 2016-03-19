@@ -48,9 +48,9 @@ library
                      , pem >= 0.2.2
                      , binary >= 0.7.5
                      , text >= 1.2
-                     , gnuidn >= 0.2
                      , yaml >= 0.8
                      , optparse-applicative >= 0.11
+                     , primitive-punycode >= 0.1
   default-language:    Haskell2010
 
 executable mousebox-exe
