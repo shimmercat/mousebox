@@ -17,34 +17,33 @@ module MouseBox.Wrapped(
 
 
 
---import           Control.Monad                                         (when, unless)
 import           Control.Lens
 
 import qualified Data.ByteString                                       as B
 --import qualified Data.ByteString.Lazy                                  as LB
 --import qualified Data.Binary                                           as Bn
-import           Data.ByteString.Char8                                 ( {-pack,-} unpack)
+import           Data.ByteString.Char8                                 ( pack, unpack)
 import qualified Data.Yaml                                             as Y (decodeFile)
 import qualified Data.Text                                             as Tx
 
+
+import           System.Directory
+
 import           System.IO                                             (stderr)
---import qualified System.Posix.Env.ByteString                           as SPE
---import           System.Posix.Types                                    (FileMode)
-import           System.Posix.FilePath
---import qualified System.Posix.Files.ByteString                         as SPF
-import qualified System.Posix.Directory.ByteString                     as SPD
---import           System.Posix.ByteString.FilePath                      (RawFilePath)
+import           System.FilePath                                       ((</>))
+
 
 import qualified Options.Applicative                                   as OA
 import           Options.Applicative                                   ( (<>) )
 
---import           MouseBox.JSONHelpers
---import           MouseBox.CertificationAuthority
---import           MouseBox.Utils                                        (shortRandomName)
 import           MouseBox.Environment
 import           MouseBox.LeafCertificate                              (makeLeafCertificate, DomainList)
 import           MouseBox.Mouseboxf
 import           MouseBox.Utils                                        (recursivelyCreateDirectory)
+
+
+
+type RawFilePath = B.ByteString
 
 
 data WrappedConfigForMouseboxf = WrappedConfigForMouseboxf {
@@ -61,9 +60,9 @@ makeLenses ''WrappedConfigForMouseboxf
 
 newDefaultWrappedConfigForMouseboxf :: IO WrappedConfigForMouseboxf
 newDefaultWrappedConfigForMouseboxf = do
-    working_dir <- SPD.getWorkingDirectory
+    working_dir <- getCurrentDirectory
     return WrappedConfigForMouseboxf {
-          _gotoDir_WCM            = working_dir
+          _gotoDir_WCM            = pack working_dir
         , _mouseboxf_WCM          = "mouseboxf"
         , _outputRel_WCM          = "_priv"
         , _outputCert_WCM         = "cert.pem"
@@ -75,16 +74,16 @@ newDefaultWrappedConfigForMouseboxf = do
 mouseBoxPerform :: CapturedEnvironment -> WrappedConfigForMouseboxf ->  IO ()
 mouseBoxPerform captured_environment wrapped_config = do
     let
-        working_dir            = wrapped_config ^. gotoDir_WCM
-        output_dir             = wrapped_config ^. outputRel_WCM
+        working_dir            = unpack $ wrapped_config ^. gotoDir_WCM
+        output_dir             = unpack $ wrapped_config ^. outputRel_WCM
         output_dir_bas         = working_dir </> output_dir
-        output_cert_place      = working_dir </> output_dir </> (wrapped_config ^. outputCert_WCM)
-        privkey_place          = working_dir </> output_dir </> (wrapped_config ^. outputPrivKey_WCM)
-        privkey_pkcs8_place    = working_dir </> output_dir </> (wrapped_config ^. outputPrivKeyPKCS8_WCM)
-        mousebox_file          = working_dir </> (wrapped_config ^. mouseboxf_WCM)
+        output_cert_place      = working_dir </> output_dir </> unpack (wrapped_config ^. outputCert_WCM)
+        privkey_place          = working_dir </> output_dir </> unpack (wrapped_config ^. outputPrivKey_WCM)
+        privkey_pkcs8_place    = working_dir </> output_dir </> unpack (wrapped_config ^. outputPrivKeyPKCS8_WCM)
+        mousebox_file          = working_dir </> unpack (wrapped_config ^. mouseboxf_WCM)
 
     -- Try to read the mousebox file and parse it
-    maybe_msfbx <- Y.decodeFile (unpack mousebox_file)
+    maybe_msfbx <- Y.decodeFile  mousebox_file
     case maybe_msfbx of
 
         Nothing -> do
@@ -96,11 +95,11 @@ mouseBoxPerform captured_environment wrapped_config = do
             persistent_registry <- persistentCARegistryFromFile captured_environment
             (new_persistent_ca_registry, pem_encoded, privkey_pem_encoded, privkey_pkcs8_pem_encoded) <- makeLeafCertificate persistent_registry domain_list
 
-            recursivelyCreateDirectory output_dir_bas
+            recursivelyCreateDirectory $ pack output_dir_bas
 
-            B.writeFile (unpack output_cert_place) pem_encoded
-            B.writeFile (unpack privkey_place) privkey_pem_encoded
-            B.writeFile (unpack privkey_pkcs8_place) privkey_pkcs8_pem_encoded
+            B.writeFile output_cert_place pem_encoded
+            B.writeFile privkey_place privkey_pem_encoded
+            B.writeFile privkey_pkcs8_place privkey_pkcs8_pem_encoded
             savePersistentCARegistryToFile captured_environment new_persistent_ca_registry
 
 
@@ -108,21 +107,20 @@ mouseBoxPerformWithDomains ::  WrappedConfigForMouseboxf -> [Tx.Text] ->  IO Boo
 mouseBoxPerformWithDomains  wrapped_config  domain_list = do
     captured_environment <- captureEnvironment
     let
-        working_dir            = wrapped_config ^. gotoDir_WCM
-        output_dir             = wrapped_config ^. outputRel_WCM
+        working_dir            = unpack $ wrapped_config ^. gotoDir_WCM
+        output_dir             = unpack $ wrapped_config ^. outputRel_WCM
         output_dir_bas         = working_dir </> output_dir
-        output_cert_place      = working_dir </> output_dir </> (wrapped_config ^. outputCert_WCM)
-        privkey_place          = working_dir </> output_dir </> (wrapped_config ^. outputPrivKey_WCM)
-        privkey_pkcs8_place    = working_dir </> output_dir </> (wrapped_config ^. outputPrivKeyPKCS8_WCM)
-
+        output_cert_place      = working_dir </> output_dir </> unpack (wrapped_config ^. outputCert_WCM)
+        privkey_place          = working_dir </> output_dir </> unpack (wrapped_config ^. outputPrivKey_WCM)
+        privkey_pkcs8_place    = working_dir </> output_dir </> unpack (wrapped_config ^. outputPrivKeyPKCS8_WCM)
     persistent_registry <- persistentCARegistryFromFile captured_environment
     (new_persistent_ca_registry, pem_encoded, privkey_pem_encoded, privkey_pkcs8_pem_encoded) <- makeLeafCertificate persistent_registry domain_list
 
-    recursivelyCreateDirectory output_dir_bas
+    recursivelyCreateDirectory $ pack output_dir_bas
 
-    B.writeFile (unpack output_cert_place) pem_encoded
-    B.writeFile (unpack privkey_place) privkey_pem_encoded
-    B.writeFile (unpack privkey_pkcs8_place) privkey_pkcs8_pem_encoded
+    B.writeFile output_cert_place pem_encoded
+    B.writeFile privkey_place privkey_pem_encoded
+    B.writeFile privkey_pkcs8_place privkey_pkcs8_pem_encoded
     savePersistentCARegistryToFile captured_environment new_persistent_ca_registry
     return $ captured_environment ^. justCreated_CE
 
@@ -137,12 +135,12 @@ mouseBoxMain = do
 
 mouseboxMainOptsParser :: IO (OA.ParserInfo WrappedConfigForMouseboxf)
 mouseboxMainOptsParser = do
-    current_directory <- SPD.getWorkingDirectory
+    current_directory <- getCurrentDirectory
     let
         parser = WrappedConfigForMouseboxf
             <$> OA.option OA.auto (OA.short 'w'
                                    <> OA.long "working-directory"
-                                   <> OA.value current_directory
+                                   <> OA.value (pack current_directory)
                                    <> OA.metavar "WORKING_DIRECTORY"
                                    <> OA.help "Directory to consider \"current\""
                                   )

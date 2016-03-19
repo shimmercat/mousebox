@@ -13,16 +13,16 @@ module MouseBox.Utils
 import           Control.Monad                                         (when {-, unless-})
 import           Control.Exception
 
-import qualified System.Posix.Files.ByteString                         as SPF
-import qualified System.Posix.Directory.ByteString                     as SPD
-import           System.Posix.FilePath
+import qualified System.PosixCompat.Files                              as SPF
+import           System.Directory
+import           System.FilePath
 
 import qualified Data.Text                                             as Tx
 import           Data.Primitive.PunyCode                               (toASCII)
 
 import qualified Data.ByteString                                       as B
 import qualified Data.ByteString.Lazy                                  as LB
---import           Data.ByteString.Char8                                 (pack, unpack)
+import           Data.ByteString.Char8                                 (pack, unpack)
 
 
 import qualified "crypto-api" Crypto.Random                            as CR
@@ -70,14 +70,14 @@ completePrivateKey p@P.PrivateKey {..} = p {
 
 recursivelyCreateDirectory :: B.ByteString ->  IO ()
 recursivelyCreateDirectory pth  = do
-    directory_dont_exist <- SPF.fileExist pth
+    directory_dont_exist <- SPF.fileExist $ unpack  pth
     when (not directory_dont_exist) $ do
         --putStrLn . show $ (upper_directory, last_path_component)
-        recursivelyCreateDirectory upper_directory
+        recursivelyCreateDirectory $ pack  upper_directory
         --putStrLn $ show last_path_component
-        SPD.createDirectory (upper_directory </> last_path_component) 496
+        createDirectory (upper_directory </> last_path_component)
   where
-    (upper_directory, last_path_component) = splitFileName . dropTrailingPathSeparator $ pth
+    (upper_directory, last_path_component) = splitFileName . dropTrailingPathSeparator . unpack $ pth
 
 
 internetDomainText2ByteString :: Tx.Text -> B.ByteString
