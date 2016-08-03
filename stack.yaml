@@ -3,4 +3,4 @@ packages:
 - '.'
 extra-deps:
 - posix-paths-0.2.1.0
-resolver: nightly-2016-01-03
+resolver: nightly-2016-05-31

@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings, PackageImports, TemplateHaskell, DeriveGeneric #-}
 module MouseBox.LeafCertificate(
                     makeLeafCertificate
+                  , makeCertificateSigningRequest
                   , DomainList
        ) where
 
@@ -15,12 +16,15 @@ import              Data.ByteString.Char8                              (
 --import              Data.Aeson                                         (decode, encode)
 
 import "crypto-api" Crypto.Random
+import qualified "cryptonite" Crypto.PubKey.RSA.Types                  as CT
+import "cryptonite" Crypto.Hash.Algorithms                             (SHA512(..))
 --import qualified    Data.ByteString                                     as B
 --import qualified    Data.ByteString.Lazy                                as LB
 import qualified    Data.Text                                           as Tx
 --import              Data.Text.IDN.IDNA                                  (toASCII, defaultFlags)
 
 import              Codec.Crypto.RSA.Pure
+import qualified    Codec.Crypto.RSA.Pure                               as Pu
 import              Data.X509
 import              Data.ASN1.OID
 import              Data.ASN1.Types                                     (ASN1Object(..)  )
@@ -36,18 +40,91 @@ import              Data.PEM
 import qualified    Control.Lens                                        as L
 import              Control.Lens                                        ( (^.) )
 
+import              Data.X509.PKCS10
+
 import              MouseBox.CertificationAuthority
+import              MouseBox.Environment
 import              MouseBox.PKCS8
 import              MouseBox.Utils
+
+
 
 
 
 type DomainList = [Tx.Text]
 
 
--- Retuirns a binary representation of the new registry,  a DER representation of the certificate and a DER
--- representation of the private key of the newly created certificate.
-makeLeafCertificate :: PersistentCARegistry -> DomainList ->  IO (PersistentCARegistry, B.ByteString, B.ByteString, B.ByteString)
+type MyKeyPair = (Pu.PublicKey, Pu.PrivateKey)
+
+-- | Creates a signing request to be used by external parties to make this a "legit"
+--   certificate. Notice that this signing request is not used by Mousebox itself, which
+--   just creates a certificate out of thin air (and the private key).
+--
+--  This function returns the csr in pem format
+makeCertificateSigningRequest :: MyKeyPair -> SerializedEnvironment -> DomainList -> IO PEM
+makeCertificateSigningRequest (public_key, private_key) ser_env domains =
+  let
+    Codec.Crypto.RSA.Pure.PublicKey public_size' public_n' public_e' =  public_key
+    Codec.Crypto.RSA.Pure.PrivateKey
+        private_pub
+        private_d
+        private_p
+        private_q
+        private_dP
+        private_dQ
+        private_qinv = private_key
+
+    pubkey_to_use = CT.PublicKey public_size' public_n' public_e'
+
+    privkey_to_use = CT.PrivateKey
+        pubkey_to_use
+        private_d
+        private_p
+        private_q
+        private_dP
+        private_dQ
+        private_qinv
+
+    alt_dn = ExtSubjectAltName $ map (AltNameDNS . unpack . internetDomainText2ByteString) domains
+
+    ext_attrs = PKCS9Attributes [
+           PKCS9Attribute alt_dn,
+           -- PKCS9Attribute (ExtSubjectKeyId . publicKeyHasher $ public_key ),
+           PKCS9Attribute $ ExtBasicConstraints False Nothing,
+           PKCS9Attribute $ ExtKeyUsage [KeyUsage_digitalSignature,KeyUsage_nonRepudiation,KeyUsage_keyEncipherment]
+            ]
+
+    subject_attrs = makeX520Attributes [
+            (X520CommonName, ""),
+            (X520OrganizationName, ser_env ^. businessName_SE),
+            (X520CountryName, ser_env ^. country_SE)
+            ]
+
+--     certificate_request_info = CertificationRequestInfo {
+--         -- 0 here means "1"
+--         version = Version 0,
+-- ,
+--         subjectPublicKeyInfo = pubkey_to_use,
+
+--         }
+
+   in do
+      Right req <-
+        generateCSR
+            subject_attrs
+            ext_attrs
+            (KeyPairRSA pubkey_to_use  privkey_to_use)
+            SHA512
+
+      return $ toPEM req
+
+
+
+-- | Returns a binary representation of the new registry,  a DER representation of the certificate and a DER
+-- representation of the private key of the newly created certificate and the private key itself.
+makeLeafCertificate :: PersistentCARegistry
+  -> DomainList
+  ->  IO (PersistentCARegistry, B.ByteString, B.ByteString, B.ByteString, MyKeyPair)
 makeLeafCertificate ca_registry domains = do
     g <- newGenIO :: IO SystemRandom
     let
@@ -85,6 +162,8 @@ makeLeafCertificate ca_registry domains = do
             -- So you'll find this Version: field in the certificate.
             -- The most recent version is 3 and this is the most used version.
             -- X.509 version 3 defines extensions.
+            -- The version is encoded with base 0, so version 3 is denoted as 3-1 =
+            -- 2
             -- So for example, they are used for certificate chains.
            , certSerial = fromIntegral current_serial_number
            , certSignatureAlg = SignatureALG HashSHA256 (pubkeyToAlg pubkey_to_use)
@@ -128,4 +207,4 @@ makeLeafCertificate ca_registry domains = do
         privkey_pkcs8_pem_encoded = pemWriteBS privkey_pkcs8_formatted
 
     --putStrLn . show $ private_key
-    return (new_ca_registry, pem_encoded, privkey_pem_encoded, privkey_pkcs8_pem_encoded)
+    return (new_ca_registry, pem_encoded, privkey_pem_encoded, privkey_pkcs8_pem_encoded,(public_key, private_key))

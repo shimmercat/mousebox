@@ -8,6 +8,8 @@ module MouseBox.Environment(
 
                            SerializedEnvironment(..),
                            disambiguator_SE,
+                           businessName_SE,
+                           country_SE,
 
                            captureEnvironment,
                            persistentCARegistryFromFile,
@@ -19,12 +21,17 @@ import           Control.Monad                                         (--when ,
                                                                          unless
                                                                         )
 import           Control.Lens
+import           Data.Maybe                                            (
+                                                                        fromMaybe
+                                                                       )
 
 import qualified Data.ByteString                                       as B
 import qualified Data.ByteString.Lazy                                  as LB
 import qualified Data.Binary                                           as Bn
 import           Data.ByteString.Char8                                 (pack, unpack)
 import           Data.Aeson                                            (decode, encode)
+import qualified Data.Aeson                                            as Ae
+import           Data.Aeson
 import           Data.Aeson.TH
 
 --import qualified System.Posix.Env.ByteString                           as SPE
@@ -43,8 +50,15 @@ import           MouseBox.Utils                                        (shortRan
 
 
 
+-- Using String here due to JSON serialization
 data SerializedEnvironment = SerializedEnvironment {
-    _disambiguator_SE :: String
+    _disambiguator_SE :: String,
+
+    -- The fields below are only required to produce a "nice"
+    -- certificate signing request that can be used in other places
+
+    _businessName_SE   :: String,
+    _country_SE        :: String
     }
     deriving Show
 
@@ -64,14 +78,39 @@ data CapturedEnvironment = CapturedEnvironment {
 makeLenses ''CapturedEnvironment
 
 
-$(deriveJSON defaultOptions{fieldLabelModifier= unpack . extractPropertyName . pack } ''SerializedEnvironment)
+-- $(deriveJSON
+--       defaultOptions
+--       {fieldLabelModifier= unpack . extractPropertyName . pack }
+--       ''SerializedEnvironment
+--  )
+instance Ae.FromJSON SerializedEnvironment where
+    parseJSON (Object v) = SerializedEnvironment
+        <$>
+        (v .: "disambiguator") <*>
+        (v .:? "country" .!= "FR") <*>
+        (v .:? "company" .!= "Widgets LTD" )
+
+
+instance Ae.ToJSON SerializedEnvironment where
+    toJSON (SerializedEnvironment d b c) =
+        Ae.object [
+            "disambiguator" Ae..= d,
+            "country" Ae..= c,
+            "company" Ae..= b
+               ]
+
+
 
 
 newSerializedEnvironment :: IO SerializedEnvironment
 newSerializedEnvironment = do
     srn <- shortRandomName 6
+    business_name <- fromMaybe "Widgets" <$> lookupEnv "MOUSEBOX__BUSINESS_NAME"
+    country <- fromMaybe "FR" <$> lookupEnv "MOUSEBOX__COUNTRY"
     return SerializedEnvironment {
-        _disambiguator_SE = unpack srn
+        _disambiguator_SE = unpack srn,
+        _businessName_SE = business_name,
+        _country_SE = country
         }
 
 
