@@ -87,8 +87,8 @@ instance Ae.FromJSON SerializedEnvironment where
     parseJSON (Object v) = SerializedEnvironment
         <$>
         (v .: "disambiguator") <*>
-        (v .:? "company" .!= "Widgets LTD" )
-        (v .:? "country" .!= "FR") <*>
+        (v .:? "company" .!= "Widgets LTD" )  <*>
+        (v .:? "country" .!= "FR")
 
 
 instance Ae.ToJSON SerializedEnvironment where
@@ -96,7 +96,7 @@ instance Ae.ToJSON SerializedEnvironment where
         Ae.object [
             "disambiguator" Ae..= d,
             "company" Ae..= b,
-            "country" Ae..= c,
+            "country" Ae..= c
                ]
 
 
