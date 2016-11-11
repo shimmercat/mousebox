@@ -95,7 +95,7 @@ makeCertificateSigningRequest (public_key, private_key) ser_env domains =
             ]
 
     subject_attrs = makeX520Attributes [
-            (X520CommonName, ""),
+            (X520CommonName, Tx.unpack . head $ domains),
             (X520OrganizationName, ser_env ^. businessName_SE),
             (X520CountryName, ser_env ^. country_SE)
             ]
@@ -145,12 +145,13 @@ makeLeafCertificate ca_registry domains = do
 
         -- All identitiy information will go somewhere else
         subject_dn = DistinguishedName [
+          (getObjectID DnCommonName, stringize issuer_common_name)
               ]
 
         alt_dn = ExtSubjectAltName $ map (AltNameDNS . unpack . internetDomainText2ByteString) domains
 
         ca_dn = DistinguishedName [
-          (getObjectID DnCommonName, stringize issuer_common_name),
+          (getObjectID DnCommonName, stringize . internetDomainText2ByteString . head $ domains),
           (getObjectID DnCountry, stringize "SE"),
           (getObjectID DnOrganization, stringize "MouseBox by Zunzun AB"),
           (getObjectID DnOrganizationUnit, stringize "Testing")
