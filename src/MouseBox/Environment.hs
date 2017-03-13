@@ -20,6 +20,7 @@ module MouseBox.Environment(
 import           Control.Monad                                         (--when ,
                                                                          unless
                                                                         )
+import qualified Control.Exception                                     as E
 import           Control.Lens
 import           Data.Maybe                                            (
                                                                         fromMaybe
@@ -47,6 +48,7 @@ import qualified System.PosixCompat.Files                              as SPF
 import           MouseBox.JSONHelpers
 import           MouseBox.CertificationAuthority
 import           MouseBox.Utils                                        (shortRandomName, recursivelyCreateDirectory)
+import           MouseBox.Exceptions
 
 
 
@@ -182,8 +184,11 @@ persistentCARegistryFromFile captured_environment =  do
     bs <- LB.fromStrict <$> B.readFile ca_persistent_registry_file
     -- And while we are at that, we can also get a new root certificate
     let
-        persistent_registry = Bn.decode bs
-    return persistent_registry
+        either_persistent_registry = Bn.decodeOrFail bs
+    case either_persistent_registry of
+        Left _ -> E.throw (MouseBoxWrongRegistryFormat ca_persistent_registry_file)
+        Right (_, _, persistent_registry) ->
+            return persistent_registry
 
 
 savePersistentCARegistryToFile :: CapturedEnvironment -> PersistentCARegistry -> IO ()

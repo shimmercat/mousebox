@@ -2,6 +2,7 @@
 -- | Simple high-level functions
 module MouseBox.Wrapped(
                  WrappedConfigForMouseboxf(..)
+
                , gotoDir_WCM
                , mouseboxf_WCM
                , outputRel_WCM
@@ -13,6 +14,7 @@ module MouseBox.Wrapped(
                , mouseBoxPerformWithDomains
 
                , mouseBoxMain
+
        ) where
 
 
@@ -40,7 +42,7 @@ import           MouseBox.Environment
 import           MouseBox.LeafCertificate                              (makeLeafCertificate, DomainList, makeCertificateSigningRequest)
 import           MouseBox.Mouseboxf
 import           MouseBox.Utils                                        (recursivelyCreateDirectory)
-
+import           MouseBox.Exceptions
 
 
 type RawFilePath = B.ByteString

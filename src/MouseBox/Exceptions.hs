@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module MouseBox.Exceptions(
-                  BadDomainNameException(..)
+                  BadDomainNameException               (..)
+                , MouseBoxWrongRegistryFormat          (..)
        ) where
 
 
@@ -13,3 +14,10 @@ data BadDomainNameException = BadDomainNameException Tx.Text
     deriving (Show, Typeable)
 
 instance Exception BadDomainNameException
+
+
+data MouseBoxWrongRegistryFormat = MouseBoxWrongRegistryFormat String
+    deriving  (Typeable, Show)
+
+
+instance Exception MouseBoxWrongRegistryFormat
